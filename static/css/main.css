@@ -1,0 +1,65 @@
+/* ==================
+        初始化
+ ==================== */
+body {
+	background-color: #f6f6f6;
+	font-size: 28upx;
+	color: #333333;
+	font-family: Helvetica Neue, Helvetica, sans-serif;
+}
+
+.bg-df {
+	background-color: #f8785f;
+	color: #FFFFFF;
+}
+
+.tf-df {
+	color: #f8785f;
+}
+
+.bk-df {
+	border-color: #f8785f !important;
+	color: #f8785f;
+}
+
+.bg-bf {
+	background-color: #00BFFF;
+	color: #FFFFFF;
+}
+
+.tf-bf {
+	color: #00BFFF;
+}
+
+.bk-bf {
+	border-color: #00BFFF !important;
+	color: #00BFFF;
+}
+
+.bg-rf {
+	background-color: #ff1d1d;
+	color: #ff1d1d;
+}
+
+.tf-rf {
+	color: #ff1d1d;
+}
+
+.bk-rf {
+	border-color: #ff1d1d !important;
+	color: #ff1d1d;
+}
+
+.bg-xf {
+	background-color: #42CA4D;
+	color: #FFFFFF;
+}
+
+.tf-xf {
+	color: #42CA4D;
+}
+
+.bk-xf {
+	border-color: #42CA4D !important;
+	color: #42CA4D;
+}
