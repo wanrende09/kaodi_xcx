@@ -1,13 +1,13 @@
 <template>
 	<view>
-		<view class="stock" @click="jump('/pages/my/record')">
-			<view class="stockTitle">进货记录</view>
+		<view class="stock" @click="openRecords">
+			<view class="stockTitle">{{projectName}}进货记录</view>
 			<image src="../../static/my.png" class="stockImg"></image>
 		</view>
 		<view class="stockContent">
 			<view class="stockFlex">
 				<view class="stockHx"></view>
-				<view class="stockName">商品采购</view>
+				<view class="stockName">{{projectName}}商品采购</view>
 				<image src="../../static/user3.png" class="stockImg1"></image>
 			</view>
 			<view class="stockItem" v-for="(item,index) in list" :key="index">
@@ -29,6 +29,7 @@
 				</view>
 
 			</view>
+			<view class="empty" v-if="!loading && list.length === 0">该项目暂无可进货商品，请联系管理员配置</view>
 
 			<view class="textareaBox">
 				<view class="boxText">备注</view>
@@ -53,11 +54,16 @@
 				page: 1, // 分页
 				lastPage: 1, // 最后一页
 				totalPrice: '',
-				remark:''
+				remark:'',
+				projectId: '',
+				projectName: '',
+				loading: false,
+				submitting: false
 			}
 		},
-		onLoad() {
-			this.postGoods()
+		onLoad(options) {
+			this.projectId = options.project_id || ''
+			this.loadProject()
 		},
 		onReachBottom() {
 			if (this.page < this.lastPage) {
@@ -66,6 +72,36 @@
 			}
 		},
 		methods: {
+			setTitle() {
+				uni.setNavigationBarTitle({ title: this.projectName ? this.projectName + '进货' : '进货' })
+			},
+			loadProject() {
+				this.$https({
+					url: 'api/erp/jinhuo/projects',
+					method: 'POST',
+					success: res => {
+						const projects = res.code == 1 && Array.isArray(res.data) ? res.data : []
+						const project = this.projectId
+							? projects.find(item => String(item.id) === String(this.projectId))
+							: (projects.find(item => item.code === 'roast_leg') || projects[0])
+						if (!project) {
+							this.projectId = ''
+							uni.showToast({ title: '该项目未启用或当前门店不可用', icon: 'none' })
+							return
+						}
+						this.projectId = project.id
+						this.projectName = project.name
+						this.setTitle()
+						this.postGoods()
+					}
+				})
+			},
+			openRecords() {
+				if (!this.projectId) return
+				uni.navigateTo({
+					url: '/pages/my/record?project_id=' + this.projectId + '&project_name=' + encodeURIComponent(this.projectName)
+				})
+			},
 			// 操作
 			jump(e) {
 				uni.navigateTo({
@@ -74,17 +110,20 @@
 			},
 			// 可进货商品列表
 			postGoods() {
+				if (!this.projectId || this.loading) return
+				this.loading = true
 				this.$https({
 					url: 'api/erp/jinhuo/goods',
 					method: 'POST',
 					data: {
-						page: this.page
+						page: this.page,
+						project_id: this.projectId
 					},
 					success: res => {
 						console.log("可进货商品列表", res)
-						this.lastPage = res.data.lastPage
-						this.list = this.list.concat(res.data)
-					}
+						this.list = res.code == 1 && Array.isArray(res.data) ? res.data : []
+					},
+					complete: () => { this.loading = false }
 				})
 			},
 			inputCilck() {
@@ -112,17 +151,23 @@
 			},
 			
 			placeOrder() {
+				if (this.submitting || !this.projectId) return
 				const goods = {}
 				this.list.forEach((item, index) => {
-					goods[item.id] = Number(item.num)
-					return JSON.stringify(goods)
+					if (Number(item.num) > 0) goods[item.id] = Number(item.num)
 				})
+				if (Object.keys(goods).length === 0) {
+					uni.showToast({ title: '请至少填写一种商品数量', icon: 'none' })
+					return
+				}
+				this.submitting = true
 				this.$https({
 					url: 'api/erp/jinhuo/add',
 					method: 'POST',
 					data: {
 						goods,
-						remark:this.remark
+						remark:this.remark,
+						project_id: this.projectId
 					},
 					success: res => {
 						console.log("tijiao", res)
@@ -139,7 +184,8 @@
 							}, 2000)
 
 						}
-					}
+					},
+					complete: () => { this.submitting = false }
 				})
 			}
 
@@ -329,6 +375,13 @@
 				font-weight: 100;
 			}
 		}
+	}
+
+	.empty {
+		padding: 100rpx 30rpx;
+		text-align: center;
+		font-size: 28rpx;
+		color: #999;
 	}
 
 	.zw {

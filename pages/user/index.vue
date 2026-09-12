@@ -58,7 +58,7 @@
 				<!-- 用户操作菜单 -->
 
 				<view class="user-operation-menu unify-background-color unify-radius">
-					<view class="user-operation-menu-item unify-flex" @tap="jump('/pages/my/stock')">
+					<view class="user-operation-menu-item unify-flex" @tap="jump('/pages/my/project')">
 						<view class="left unify-flex">
 							<!-- <view class="iconfont el-icon-shouye"></view> -->
 							<image src="../../static/user3.png" class="operationImg"></image>

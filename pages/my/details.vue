@@ -4,7 +4,7 @@
 		<view class="conter">
 			<view class="stockFlex">
 				<view class="stockHx"></view>
-				<view class="stockName">进货列表</view>
+				<view class="stockName">{{projectName}}进货列表</view>
 				<image src="../../static/user3.png" class="stockImg1"></image>
 			</view>
 			<view class="detailFlex" v-for="(item,index) in list" :key="index">
@@ -32,7 +32,8 @@
 			return {
 				list:[],
 				totalMoney:'',
-				remark:''
+				remark:'',
+				projectName:''
 			}
 		},
 		onLoad(e) {
@@ -52,6 +53,8 @@
 						this.list = res.data.goods
 						this.totalMoney = res.data.totalMoney
 						this.remark = res.data.remark
+						this.projectName = res.data.project_name || '项目'
+						uni.setNavigationBarTitle({ title: this.projectName + '进货详情' })
 					}
 				})
 			}

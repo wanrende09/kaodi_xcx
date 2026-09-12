@@ -5,8 +5,6 @@
 			<view class="box">
 				<picker mode="date" :value="date" :start="startDate" :end="endDate" @change="bindDateChange">
 					<view class="boxTime">
-						<!-- {{moment().format('YYYY/MM/DD')}}
-				 -->
 						<view class="uni-input">{{date}}</view>
 						<image src="../../static/xiala.png" class="boxTimeImg"></image>
 
@@ -62,20 +60,18 @@
 </template>
 
 <script>
-	import moment from 'moment';
-	import _ from 'lodash'
 	export default {
 		data() {
 			const currentDate = this.getDate({
 				format: true
 			})
 			return {
-				moment,
 				money: '',
 				list: [],
 				time: '',
 				date: currentDate,
-				depletion_money: ''
+				depletion_money: '',
+				inputTimer: null
 			}
 		},
 		computed: {
@@ -89,6 +85,9 @@
 		onLoad() {
 			this.time = new Date()
 			this.postGoods()
+		},
+		onUnload() {
+			if (this.inputTimer) clearTimeout(this.inputTimer)
 		},
 		methods: {
 			bindDateChange: function(e) {
@@ -115,7 +114,8 @@
 					url: 'api/erp/jinhuo/goods',
 					method: 'POST',
 					data: {
-						page: this.page
+						page: this.page,
+						scope: 'all'
 					},
 					success: res => {
 						console.log("可进货商品列表", res)
@@ -133,19 +133,18 @@
 			// 	this.totalPrice = total
 			// },
 
-			handleInputChange: _.debounce(function() {
-				console.log(this.list)
-				const arr = this.list
-				var beg = false
-				beg = arr.filter(item => item.show_stock === 1 && item.num).length === arr.filter(item => item.show_stock === 1).length
-				if(beg && this.depletion_money){
-					this.getData()
-				}else{
-					this.money = ''
-				}
-				
-				
-			}, 500),
+			handleInputChange() {
+				if (this.inputTimer) clearTimeout(this.inputTimer)
+				this.inputTimer = setTimeout(() => {
+					const visibleGoods = this.list.filter(item => item.show_stock === 1)
+					const completed = visibleGoods.length > 0 && visibleGoods.every(item => item.num !== '' && item.num !== null)
+					if (completed && this.depletion_money !== '' && this.depletion_money !== null) {
+						this.getData()
+					} else {
+						this.money = ''
+					}
+				}, 500)
+			},
 			getData() {
 				// 数据请求
 				const goods = {}

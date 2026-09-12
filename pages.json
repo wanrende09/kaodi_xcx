@@ -37,6 +37,11 @@
 	"subPackages": [{
 		"root": "pages/my",
 		"pages": [{
+			"path": "project",
+			"style": {
+				"navigationBarTitleText": "选择进货项目"
+			}
+		}, {
 			"path": "stock",
 			"style": {
 				"navigationBarTitleText": "进货"
