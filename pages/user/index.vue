@@ -126,9 +126,17 @@
 				userOperationMenu: this.$mConstDataConfig.userOperationMenu, // 用户操作菜单
 				userInfo: {
 					nickname: '',
-					mobile: ''
+					mobile: '',
+					store: {
+						shopname: ''
+					}
 				},
-				statistics: [],
+				statistics: [
+					{ value: 0 },
+					{ value: 0 },
+					{ value: 0 },
+					{ value: 0 }
+				],
 				chartData: {},
 				opts: {
 					fontSize: 10,
@@ -198,8 +206,11 @@
 					method: 'POST',
 					success: res => {
 						console.log("用户信息", res)
-						this.userInfo = res.data
-						this.getStatistics()
+						if (res && Number(res.code) === 1 && res.data) {
+							this.userInfo = Object.assign({}, this.userInfo, res.data)
+							this.userInfo.store = res.data.store || { shopname: '' }
+							this.getStatistics()
+						}
 					}
 				})
 			},
@@ -210,11 +221,14 @@
 					method: 'GET',
 					success: res => {
 						console.log("统计数据", res)
-						this.statistics = res.data.statistics
+						if (!res || Number(res.code) !== 1 || !res.data) return
+						const statistics = Array.isArray(res.data.statistics) ? res.data.statistics : []
+						this.statistics = [0, 1, 2, 3].map(index => statistics[index] || { value: 0 })
+						const chart = Array.isArray(res.data.chart) ? res.data.chart : []
 						const arr = []
-						res.data.chart.forEach(value => arr.push(value.date))
+						chart.forEach(value => arr.push(value.date))
 						const arr1 = []
-						res.data.chart.forEach(value => arr1.push(value.value))
+						chart.forEach(value => arr1.push(value.value))
 						console.log("arr", arr)
 						let res1 = {
 							categories: arr,

@@ -57,7 +57,11 @@
 				},
 				bannerList: [],
 				noticeString: {},
-				userInfo:{}
+				userInfo: {
+					store: {
+						shopname: ''
+					}
+				}
 			}
 		},
 		onLoad(e) {
@@ -76,9 +80,12 @@
 					method: 'POST',
 					success: res => {
 						console.log("用户信息", res)
-						this.userInfo = res.data
-						this.advert()
-						this.notice()
+						if (res && Number(res.code) === 1 && res.data) {
+							this.userInfo = Object.assign({}, this.userInfo, res.data)
+							this.userInfo.store = res.data.store || { shopname: '' }
+							this.advert()
+							this.notice()
+						}
 					}
 				})
 			},
@@ -88,7 +95,7 @@
 					method: 'POST',
 					success: res => {
 						console.log("banner", res)
-						this.bannerList = res.data
+						this.bannerList = res && Number(res.code) === 1 && Array.isArray(res.data) ? res.data : []
 					}
 				})
 			},
@@ -98,9 +105,10 @@
 					method: 'POST',
 					success: res => {
 						console.log("notice", res)
-						if (res.data.data) {
-							this.noticeString = res.data.data[0]
-						}
+						const notices = res && Number(res.code) === 1 && res.data && Array.isArray(res.data.data)
+							? res.data.data
+							: []
+						this.noticeString = notices[0] || {}
 
 					}
 				})

@@ -20,7 +20,7 @@ module.exports = (params) => {
 	// 请求方式 get post
 	if (method) {
 		method = method.toUpperCase(); // 小写转大写
-		if (method == "POST" || "GET") {
+		if (method === "POST" || method === "GET") {
 			header = {
 				'Content-Type': 'application/json',
 				'token': token 
@@ -36,13 +36,30 @@ module.exports = (params) => {
 	uni.request({
 		url: url,
 		data: data,
-		dataType: 'json', // 'json' : 'sting'
+		dataType: 'text',
 		sslVerify: false,
 		method: method || "GET",
 		header: header,
 		success: res => {
-			console.log("接口请求",res)
-			if (res.statusCode === 401) {
+			let responseData = res.data
+			if (typeof responseData === 'string') {
+				try {
+					responseData = JSON.parse(responseData)
+				} catch (error) {
+					console.error('接口返回的不是 JSON', url, res.statusCode)
+					uni.showModal({
+						content: '服务器响应异常，请稍后再试~',
+						showCancel: false
+					})
+					typeof params.fail == "function" && params.fail({
+						statusCode: res.statusCode,
+						message: 'Invalid JSON response'
+					})
+					return
+				}
+			}
+			console.log("接口请求", responseData)
+			if (res.statusCode === 401 || (responseData && Number(responseData.code) === 401)) {
 				// this.$openPage({
 				// 	name: 'login'
 				// })
@@ -60,7 +77,7 @@ module.exports = (params) => {
 				})
 				return;
 			}
-			typeof params.success == "function" && params.success(res.data);
+			typeof params.success == "function" && params.success(responseData);
 		},
 		fail: err => {
 			uni.showModal({
