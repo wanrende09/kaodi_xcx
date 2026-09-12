@@ -6,7 +6,6 @@ import indexConfig from '@/config/index.config'
 
 module.exports = (params) => {
 	let url = '';
-	console.log("token",uni.getStorageSync('token'))
 	let token = uni.getStorageSync('token'); // 获取token
 	url = indexConfig.baseUrl + params.url; // 线上环境中开启
 	// let url = "/dpc/" + params.url;									// 本地访问时开启
