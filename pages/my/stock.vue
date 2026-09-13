@@ -22,7 +22,7 @@
 						<view class="rightTopText">{{item.unit}}</view>
 					</view>
 					<view class="rightBootom">
-						<view class="rightBootomMoney">价格<text>{{item.num * item.price * item.quantity  || '0'}}元</text>
+						<view class="rightBootomMoney">价格<text>{{formatLineAmount(item)}}元</text>
 						</view>
 						<view class="rightBootomNum">共{{item.num * item.quantity  || '0'}}个</view>
 					</view>
@@ -72,6 +72,26 @@
 			}
 		},
 		methods: {
+			moneyToCents(value) {
+				const price = String(value === null || value === undefined || value === '' ? 0 : value)
+				const parts = price.split('.')
+				const yuan = Number(parts[0])
+				const cents = Number(((parts[1] || '') + '00').slice(0, 2))
+				if (!Number.isFinite(yuan) || !Number.isFinite(cents)) return 0
+				return yuan * 100 + cents
+			},
+			lineAmountCents(item) {
+				const orderQuantity = Number(item.num)
+				const packageQuantity = Number(item.quantity)
+				if (!Number.isFinite(orderQuantity) || !Number.isFinite(packageQuantity)) return 0
+				return this.moneyToCents(item.price) * orderQuantity * packageQuantity
+			},
+			formatMoney(cents) {
+				return (cents / 100).toFixed(2)
+			},
+			formatLineAmount(item) {
+				return this.formatMoney(this.lineAmountCents(item))
+			},
 			setTitle() {
 				uni.setNavigationBarTitle({ title: this.projectName ? this.projectName + '进货' : '进货' })
 			},
@@ -127,12 +147,11 @@
 				})
 			},
 			inputCilck() {
-				let total = 0
+				let totalCents = 0
 				this.list.forEach((item) => {
-					console.log(item)
-					total += Number(item.num * item.price * item.quantity)
+					totalCents += this.lineAmountCents(item)
 				})
-				this.totalPrice = total
+				this.totalPrice = this.formatMoney(totalCents)
 			},
 			confirm(){
 				var that = this;
