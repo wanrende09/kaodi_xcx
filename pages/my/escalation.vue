@@ -31,17 +31,17 @@
 				<view v-else-if="goodsLoaded && visibleGoods.length === 0" class="emptyGoods">暂无可上报商品</view>
 				<view class="listFlex" v-for="item in visibleGoods" :key="item.id">
 					<view class="dian"></view>
-					<view class="listFlexText">{{item.name}}<text>（{{item.quantity}}个/{{item.unit}}）</text></view>
+					<view class="listFlexText">{{item.name}}<text>（{{item.quantity}}{{item.base_unit || '个'}}/{{item.unit}}）</text></view>
 					<view class="listFlexRight">
 						<view class="rightFlex">
 							<view class="itemFlexInt">
 								<input v-model="item.num" @input="handleInputChange()" type="number" placeholder="请输入数量"
 									placeholder-class="int" />
 							</view>
-							<view class="itemFlexMoeny">个</view>
+							<view class="itemFlexMoeny">{{item.base_unit || '个'}}</view>
 						</view>
 						<view class="rightBootom">
-							<view class="rightBootomText">共{{item.num || '0'}}个</view>
+							<view class="rightBootomText">共{{item.num || '0'}}{{item.base_unit || '个'}}</view>
 						</view>
 					</view>
 				</view>
