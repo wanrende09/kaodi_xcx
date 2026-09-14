@@ -5,8 +5,6 @@
 			<view class="box">
 				<picker mode="date" :value="date" :start="startDate" :end="endDate" @change="bindDateChange">
 					<view class="boxTime">
-						<!-- {{moment().format('YYYY/MM/DD')}}
-				 -->
 						<view class="uni-input">{{date}}</view>
 						<image src="../../static/xiala.png" class="boxTimeImg"></image>
 
@@ -29,19 +27,21 @@
 					<view class="stockName">库存余量</view>
 					<image src="../../static/my6.png" class="stockImg2"></image>
 				</view>
-				<view class="listFlex" v-for="(item,index) in list" :key="index" v-if="item.show_stock == 1">
+				<view v-if="loadError" class="loadError" @click="postGoods">商品列表加载失败，点击重试</view>
+				<view v-else-if="goodsLoaded && visibleGoods.length === 0" class="emptyGoods">暂无可上报商品</view>
+				<view class="listFlex" v-for="item in visibleGoods" :key="item.id">
 					<view class="dian"></view>
-					<view class="listFlexText">{{item.name}}<text>（{{item.quantity}}个/{{item.unit}}）</text></view>
+					<view class="listFlexText">{{item.name}}<text>（{{item.quantity}}{{item.base_unit || '个'}}/{{item.unit}}）</text></view>
 					<view class="listFlexRight">
 						<view class="rightFlex">
 							<view class="itemFlexInt">
 								<input v-model="item.num" @input="handleInputChange()" type="number" placeholder="请输入数量"
 									placeholder-class="int" />
 							</view>
-							<view class="itemFlexMoeny">个</view>
+							<view class="itemFlexMoeny">{{item.base_unit || '个'}}</view>
 						</view>
 						<view class="rightBootom">
-							<view class="rightBootomText">共{{item.num || '0'}}个</view>
+							<view class="rightBootomText">共{{item.num || '0'}}{{item.base_unit || '个'}}</view>
 						</view>
 					</view>
 				</view>
@@ -56,29 +56,40 @@
 		</view>
 		<view class="zw"></view>
 		<view class="footer">
-			<view class="footerBtn" @click="confirm()">立即上报</view>
+			<view class="footerBtn" :class="{ disabled: !canSubmit }" @click="confirm">立即上报</view>
 		</view>
 	</view>
 </template>
 
 <script>
-	import moment from 'moment';
-	import _ from 'lodash'
 	export default {
 		data() {
 			const currentDate = this.getDate({
 				format: true
 			})
 			return {
-				moment,
 				money: '',
 				list: [],
-				time: '',
 				date: currentDate,
-				depletion_money: ''
+				depletion_money: '',
+				inputTimer: null,
+				goodsLoading: false,
+				goodsLoaded: false,
+				loadError: false,
+				isSubmitting: false,
+				calculationVersion: 0
 			}
 		},
 		computed: {
+			visibleGoods() {
+				return this.list.filter(item => Number(item.show_stock) === 1)
+			},
+			canSubmit() {
+				return this.goodsLoaded && !this.goodsLoading && !this.loadError && !this.isSubmitting &&
+					this.visibleGoods.length > 0 &&
+					this.visibleGoods.every(item => this.isValidNumber(item.num)) &&
+					this.isValidNumber(this.depletion_money) && this.money !== '' && isFinite(Number(this.money))
+			},
 			startDate() {
 				return this.getDate('start');
 			},
@@ -86,13 +97,17 @@
 				return this.getDate('end');
 			}
 		},
-		onLoad() {
-			this.time = new Date()
+		onShow() {
 			this.postGoods()
+		},
+		onUnload() {
+			if (this.inputTimer) clearTimeout(this.inputTimer)
+			this.calculationVersion++
 		},
 		methods: {
 			bindDateChange: function(e) {
 				this.date = e.detail.value
+				this.handleInputChange()
 			},
 			getDate(type) {
 				const date = new Date();
@@ -109,50 +124,97 @@
 				day = day > 9 ? day : '0' + day;
 				return `${year}-${month}-${day}`;
 			},
-			// 可进货商品列表
+			isValidNumber(value) {
+				if (value === '' || value === null || typeof value === 'undefined') return false
+				const number = Number(value)
+				return isFinite(number) && number >= 0
+			},
+			buildGoodsPayload() {
+				if (!this.visibleGoods.length || !this.visibleGoods.every(item => this.isValidNumber(item.num))) {
+					return null
+				}
+				const goods = {}
+				this.visibleGoods.forEach(item => {
+					goods[item.id] = Number(item.num)
+				})
+				return goods
+			},
+			isGoodsStateError(message) {
+				return /不存在|已下架|取消计数|无需上报/.test(message || '')
+			},
+			showMessage(message) {
+				uni.showToast({
+					title: message,
+					icon: 'none',
+					duration: 2000
+				})
+			},
+			handleGoodsLoadError() {
+				this.list = []
+				this.money = ''
+				this.goodsLoading = false
+				this.goodsLoaded = false
+				this.loadError = true
+				this.showMessage('商品列表加载失败，请重试')
+			},
+			// 可上报商品列表
 			postGoods() {
+				if (this.goodsLoading) return
+				const previousValues = {}
+				this.list.forEach(item => {
+					previousValues[String(item.id)] = item.num
+				})
+				if (this.inputTimer) clearTimeout(this.inputTimer)
+				this.calculationVersion++
+				this.money = ''
+				this.goodsLoading = true
+				this.goodsLoaded = false
+				this.loadError = false
 				this.$https({
-					url: 'api/erp/jinhuo/goods',
+					url: 'api/erp/elevate/goods',
 					method: 'POST',
-					data: {
-						page: this.page
-					},
 					success: res => {
-						console.log("可进货商品列表", res)
-						this.list = res.data
+						if (Number(res.code) !== 1 || !Array.isArray(res.data)) {
+							this.handleGoodsLoadError()
+							return
+						}
+						this.list = res.data.map(item => {
+							const key = String(item.id)
+							return Object.assign({}, item, {
+								num: Object.prototype.hasOwnProperty.call(previousValues, key) ? previousValues[key] : ''
+							})
+						})
+						this.goodsLoading = false
+						this.goodsLoaded = true
+						this.loadError = false
+						this.handleInputChange()
+					},
+					fail: () => {
+						this.handleGoodsLoadError()
+					},
+					complete: () => {
+						if (this.goodsLoading) this.handleGoodsLoadError()
 					}
 				})
 			},
-			// inputCilck() {
-			// 	this.handleInputChange()
-			// 	let total = 0
-			// 	this.list.forEach((item) => {
-			// 		console.log(item)
-			// 		total += Number(item.num * item.price * item.quantity)
-			// 	})
-			// 	this.totalPrice = total
-			// },
-
-			handleInputChange: _.debounce(function() {
-				console.log(this.list)
-				const arr = this.list
-				var beg = false
-				beg = arr.filter(item => item.show_stock === 1 && item.num).length === arr.filter(item => item.show_stock === 1).length
-				if(beg && this.depletion_money){
-					this.getData()
-				}else{
+			handleInputChange() {
+				if (this.inputTimer) clearTimeout(this.inputTimer)
+				this.money = ''
+				const version = ++this.calculationVersion
+				this.inputTimer = setTimeout(() => {
+					if (this.buildGoodsPayload() && this.isValidNumber(this.depletion_money)) {
+						this.getData(version)
+					} else {
+						this.money = ''
+					}
+				}, 500)
+			},
+			getData(version) {
+				const goods = this.buildGoodsPayload()
+				if (!goods || !this.isValidNumber(this.depletion_money)) {
 					this.money = ''
+					return
 				}
-				
-				
-			}, 500),
-			getData() {
-				// 数据请求
-				const goods = {}
-				this.list.forEach((item, index) => {
-					goods[item.id] = Number(item.num)
-					return JSON.stringify(goods)
-				})
 				this.$https({
 					url: 'api/erp/elevate/income_money',
 					method: 'POST',
@@ -162,25 +224,25 @@
 						elevatetime: this.date
 					},
 					success: res => {
-						console.log("自动计算金额",res)
-						this.money =res.data
-				// 		uni.showToast({
-				// 			title: res.msg,
-				// 			icon: 'none',
-				// 			duration: 2000
-				// 		});
-				// 		if (res.code == 1) {
-				// 			setTimeout(() => {
-				// 				uni.navigateBack({
-				// 					delta: 1
-				// 				})
-				// 			}, 2000)
-				
-				// 		}
+						if (version !== this.calculationVersion) return
+						if (Number(res.code) === 1) {
+							this.money = res.data
+							return
+						}
+						this.money = ''
+						this.showMessage(res.msg || '金额计算失败，请重试')
+						if (this.isGoodsStateError(res.msg)) this.postGoods()
+					},
+					fail: () => {
+						if (version === this.calculationVersion) this.money = ''
 					}
 				})
 			},
 			confirm() {
+				if (!this.canSubmit) {
+					this.showMessage(this.loadError ? '商品列表加载失败，请重试' : '请完整填写最新商品库存和损耗金额')
+					return
+				}
 				var that = this;
 				uni.showModal({
 					title: '提示',
@@ -196,12 +258,10 @@
 				});
 			},
 			placeOrder() {
-				console.log(this.list)
-				const goods = {}
-				this.list.forEach((item, index) => {
-					goods[item.id] = Number(item.num)
-					return JSON.stringify(goods)
-				})
+				if (!this.canSubmit || this.isSubmitting) return
+				const goods = this.buildGoodsPayload()
+				if (!goods) return
+				this.isSubmitting = true
 				this.$https({
 					url: 'api/erp/elevate/add',
 					method: 'POST',
@@ -211,19 +271,19 @@
 						elevatetime: this.date
 					},
 					success: res => {
-						uni.showToast({
-							title: res.msg,
-							icon: 'none',
-							duration: 2000
-						});
-						if (res.code == 1) {
+						this.showMessage(res.msg || (Number(res.code) === 1 ? '上报成功' : '上报失败'))
+						if (Number(res.code) === 1) {
 							setTimeout(() => {
 								uni.navigateBack({
 									delta: 1
 								})
 							}, 2000)
-
+						} else if (this.isGoodsStateError(res.msg)) {
+							this.postGoods()
 						}
+					},
+					complete: () => {
+						this.isSubmitting = false
 					}
 				})
 			}
@@ -398,6 +458,18 @@
 				}
 			}
 
+			.loadError,
+			.emptyGoods {
+				padding: 48rpx 0;
+				text-align: center;
+				font-size: 28rpx;
+				color: #888888;
+			}
+
+			.loadError {
+				color: #FF1D1D;
+			}
+
 		}
 	}
 
@@ -436,6 +508,10 @@
 			color: #FFFFFF;
 			text-align: center;
 			line-height: 80rpx;
+
+			&.disabled {
+				opacity: 0.5;
+			}
 		}
 	}
 </style>

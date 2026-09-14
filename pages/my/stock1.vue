@@ -10,10 +10,10 @@
 				<view class="stockName">商品采购</view>
 				<image src="../../static/user3.png" class="stockImg1"></image>
 			</view>
-			<view class="stockItem" v-for="(item,index) in list" :key="index">
+			<view class="stockItem" v-for="item in list" :key="item.goods_id">
 				<view class="dian"></view>
 				<view class="stockItemName">
-					{{item.goods.name}}<text>（{{item.goods.quantity}}个/{{item.goods.unit}}）</text></view>
+					{{item.goods.name}}<text>（{{item.goods.quantity}}{{item.goods.base_unit || '个'}}/{{item.goods.unit}}）</text></view>
 				<view class="stockItemRight">
 					<view class="rightTop">
 						<view class="rightTopInt">
@@ -26,7 +26,7 @@
 						<view class="rightBootomMoney">
 							价格<text>{{item.quantity * item.goods.price * item.goods.quantity  || '0'}}元</text>
 						</view>
-						<view class="rightBootomNum">共{{item.quantity * item.goods.quantity  || '0'}}个</view>
+						<view class="rightBootomNum">共{{item.quantity * item.goods.quantity || '0'}}{{item.goods.base_unit || '个'}}</view>
 					</view>
 				</view>
 

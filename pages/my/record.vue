@@ -21,7 +21,7 @@
 								<view class="listItemHx"></view>
 								<view class="listItemConter">
 									<view class="listItemView">
-										<view class="time">{{item.updatetime_text}}</view>
+										<view class="time">{{item.project_name}}进货 · {{item.updatetime_text}}</view>
 										<view class="viewRight green">待配送</view>
 									</view>
 									<view class="listItemView">
@@ -39,14 +39,6 @@
 											<view class="viewTwoAshText">预计明天到达</view>
 										</view>
 									</view>
-									<view class="listItemView"  >
-										<!-- <view class="viewTwoNum1">
-											取消订单
-										</view> -->
-										<view class="viewTwoNum2">
-											修改数量
-										</view>
-									</view>
 								</view>
 
 							</block>
@@ -54,7 +46,7 @@
 								<view class="listItemHx1"></view>
 								<view class="listItemConter">
 									<view class="listItemView">
-										<view class="time">{{item.updatetime_text}}</view>
+										<view class="time">{{item.project_name}}进货 · {{item.updatetime_text}}</view>
 										<view class="viewRight red">已配送</view>
 									</view>
 									<view class="listItemView">
@@ -78,7 +70,7 @@
 								<view class="listItemHx2"></view>
 								<view class="listItemConter">
 									<view class="listItemView">
-										<view class="time">{{item.updatetime_text}}</view>
+										<view class="time">{{item.project_name}}进货 · {{item.updatetime_text}}</view>
 										<view class="viewRight blue">已取消</view>
 									</view>
 									<view class="listItemView">
@@ -133,7 +125,9 @@
 				list: [],
 				windowHeight: 0,
 				page: 1,
-				lastPage: 0
+				lastPage: 0,
+				projectId: '',
+				projectName: ''
 			}
 		},
 		mounted() {
@@ -149,22 +143,20 @@
 			this.list = []
 			this.orderList()
 		},
-		onLoad() {
-			
+		onLoad(options) {
+			this.projectId = options.project_id || ''
+			this.projectName = options.project_name ? decodeURIComponent(options.project_name) : ''
+			if (this.projectName) {
+				uni.setNavigationBarTitle({ title: this.projectName + '进货记录' })
+			}
 		},
 		methods: {
 			// 跳转页面
 			jump(e){
 				console.log("eeeee",e)
-				if(e.status == 1){
-					uni.navigateTo({
-						url:'/pages/my/stock1?id=' + e.id
-					})
-				}else{
-					uni.navigateTo({
-						url:'/pages/my/details?id=' + e.id
-					})
-				}
+				uni.navigateTo({
+					url:'/pages/my/details?id=' + e.id
+				})
 			},
 			tolower() {
 				console.log(11111)
@@ -179,7 +171,8 @@
 					url: 'api/erp/jinhuo/index',
 					data: {
 						status: this.tabIndex,
-						page: this.page
+						page: this.page,
+						project_id: this.projectId
 					},
 					method: 'POST',
 					success: res => {

@@ -162,12 +162,11 @@
 		</view>
 		<u-calendar :show="show" :defaultDate="calendar.defaultDate" :minDate="calendar.minDate"
 			:monthNum="calendar.monthNum" :mode="mode" @confirm="confirm" @close="close"
-			allowSameDay="true" style="z-index: 9999;"></u-calendar>
+			:allowSameDay="true" style="z-index: 9999;"></u-calendar>
 	</view>
 </template>
 
 <script>
-	import moment from 'moment';
 	export default {
 		data() {
 			return {

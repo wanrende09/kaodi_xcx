@@ -4,13 +4,13 @@
 		<view class="conter">
 			<view class="stockFlex">
 				<view class="stockHx"></view>
-				<view class="stockName">进货列表</view>
+				<view class="stockName">{{projectName}}进货列表</view>
 				<image src="../../static/user3.png" class="stockImg1"></image>
 			</view>
-			<view class="detailFlex" v-for="(item,index) in list" :key="index">
+			<view class="detailFlex" v-for="item in list" :key="item.goods_id">
 				<view class="dian"></view>
-				<view class="detailFlexText">{{item.goods_name}}<text>（{{item.quantity}}个/{{item.unit}}）</text></view>
-				<view class="detailFlexNum">数量<text class="text1">{{item.totalNum}}个</text>价格<text>{{item.totalPrice}}元</text></view>
+				<view class="detailFlexText">{{item.goods_name}}<text>（{{item.package_quantity || item.quantity}}{{item.base_unit || '个'}}/{{item.unit}}）</text></view>
+				<view class="detailFlexNum">数量<text class="text1">{{item.totalNum}}{{item.base_unit || '个'}}</text>价格<text>{{item.totalPrice}}元</text></view>
 			</view>
 			<view class="textareaBox">
 				<view class="boxText">备注</view>
@@ -32,7 +32,8 @@
 			return {
 				list:[],
 				totalMoney:'',
-				remark:''
+				remark:'',
+				projectName:''
 			}
 		},
 		onLoad(e) {
@@ -52,6 +53,8 @@
 						this.list = res.data.goods
 						this.totalMoney = res.data.totalMoney
 						this.remark = res.data.remark
+						this.projectName = res.data.project_name || '项目'
+						uni.setNavigationBarTitle({ title: this.projectName + '进货详情' })
 					}
 				})
 			}
