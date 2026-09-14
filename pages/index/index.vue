@@ -15,7 +15,7 @@
 					<image src="../../static/logo.png" class="logo"></image>
 					<view class="topViewCenter">
 						<view class="centerText1">合肥烤帝·专业烤腿</view>
-						<view class="centerText2">{{userInfo.store.shopname}}</view>
+						<view class="centerText2">{{ userInfo && userInfo.store ? userInfo.store.shopname : '' }}</view>
 					</view>
 				</view>
 			</view>

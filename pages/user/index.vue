@@ -15,7 +15,7 @@
 					<image src="../../static/logo.png" class="userImage"></image>
 					<view class="userRight">
 						<view class="userName">合肥烤帝·专业烤腿</view>
-						<view class="userAddress">{{userInfo.store.shopname}}</view>
+						<view class="userAddress">{{ userInfo && userInfo.store ? userInfo.store.shopname : '' }}</view>
 					</view>
 				</view>
 				<!-- 用户收入 -->
